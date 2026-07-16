@@ -1,0 +1,26 @@
+campaign_rank,artist_id,dominant_genre,avg_popularity,playlist_reach,artist_rank_score,creative_format,hook_type,cta_type,visual_style,placement,creative_rank_score,combined_priority_score
+1,Dua Lipa,pop,75.79310344827586,22,1.3059511,video,trending_challenge,add_to_playlist,dark_moody,tiktok,0.5268187,0.8741823
+2,Selena Gomez,pop,72.28846153846153,27,1.3344632,video,genre_tag,try_free,vibrant_colorful,tiktok,0.4251172,0.86819816
+3,Ed Sheeran,latin,74.78787878787878,34,1.3256223,video,artist_story,try_free,retro_grain,youtube_preroll,0.377665,0.82105637
+4,Travis Scott,rap,82.1470588235294,17,1.3434981,video,artist_story,listen_now,retro_grain,youtube_preroll,0.31232977,0.8163288
+5,The Chainsmokers,edm,57.699186991869915,53,1.2730278,video,genre_tag,add_to_playlist,retro_grain,tiktok,0.4505326,0.76092273
+6,Justin Bieber,pop,74.2258064516129,18,1.2681469,video,mood_based,try_free,minimal_clean,tiktok,0.464307,0.75969195
+7,Khalid,r&b,75.29824561403508,21,1.3156224,story_ad,trending_challenge,listen_now,vibrant_colorful,instagram_story,0.12769271,0.6459666
+8,Rauw Alejandro,latin,71.04166666666667,15,1.3058507,story_ad,mood_based,try_free,vibrant_colorful,tiktok,0.1272161,0.6261005
+9,Sam Smith,r&b,71.32,20,1.2826414,video,trending_challenge,add_to_playlist,vibrant_colorful,instagram_story,0.10953331,0.5686486
+10,French Montana,rap,68.70588235294117,12,1.1186587,video,lyric_snippet,add_to_playlist,retro_grain,tiktok,0.6084217,0.54969853
+11,Lauv,pop,69.93548387096774,21,1.2730992,video,artist_story,listen_now,retro_grain,instagram_feed,0.105362855,0.5469507
+12,Young Thug,rap,71.75,19,1.1756887,video,lyric_snippet,try_free,vibrant_colorful,display_banner,0.31937423,0.4846152
+13,Frank Ocean,r&b,68.07317073170732,11,1.2151536,video,trending_challenge,follow_artist,vibrant_colorful,instagram_story,0.17970128,0.47701252
+14,Myke Towers,latin,71.77272727272727,13,1.1054779,video,mood_based,try_free,minimal_clean,tiktok,0.5271026,0.47285685
+15,James Arthur,pop,69.75,14,1.1018951,video,artist_story,try_free,retro_grain,tiktok,0.5224159,0.46277398
+16,Jhay Cortez,latin,76.93333333333334,13,1.1479096,video,lyric_snippet,add_to_playlist,vibrant_colorful,youtube_preroll,0.36034074,0.45439234
+17,Jonas Brothers,pop,71.46666666666667,11,1.2010236,video,genre_tag,listen_now,retro_grain,display_banner,0.11147482,0.40639126
+18,Camila Cabello,pop,77.10526315789474,20,1.1584599,video,lyric_snippet,try_free,retro_grain,instagram_story,0.24819696,0.40595728
+19,Tones and I,pop,75.6,9,1.0718377,video,genre_tag,add_to_playlist,dark_moody,tiktok,0.4363184,0.3491681
+20,Ava Max,pop,76.9,10,1.0662197,video,trending_challenge,follow_artist,minimal_clean,instagram_story,0.35323006,0.28637534
+21,Mac Miller,r&b,68.3,12,1.1138507,static_image,trending_challenge,try_free,vibrant_colorful,instagram_feed,0.051211342,0.19442162
+22,Harry Styles,r&b,83.5925925925926,13,1.053378,video,artist_story,listen_now,dark_moody,tiktok,0.21494703,0.17487694
+23,Alicia Keys,r&b,65.61111111111111,11,1.0505557,story_ad,trending_challenge,follow_artist,vibrant_colorful,instagram_story,0.13150762,0.117465585
+24,Billie Eilish,r&b,83.5813953488372,21,1.1014855,video,lyric_snippet,listen_now,retro_grain,instagram_story,-0.0364087,0.11530463
+25,ROSALÍA,latin,79.05882352941177,11,1.0439129,story_ad,trending_challenge,listen_now,minimal_clean,youtube_preroll,0.04262629,0.04902684

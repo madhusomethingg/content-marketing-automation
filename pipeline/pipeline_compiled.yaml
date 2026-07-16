@@ -1,0 +1,834 @@
+# PIPELINE DEFINITION
+# Name: content-marketing-ranking-pipeline
+# Description: Rank artists and ad creatives for automated user-acquisition campaigns using XGBoost learning-to-rank.
+# Inputs:
+#    creatives_per_artist: int [Default: 8.0]
+#    data_url: str [Default: 'https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-01-21/spotify_songs.csv']
+#    min_tracks_per_artist: int [Default: 2.0]
+#    random_seed: int [Default: 42.0]
+#    top_k_artists: int [Default: 25.0]
+#    top_n_per_genre: int [Default: 80.0]
+components:
+  comp-build-artist-features:
+    executorLabel: exec-build-artist-features
+    inputDefinitions:
+      artifacts:
+        tracks_csv:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        min_tracks:
+          defaultValue: 2.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        random_seed:
+          defaultValue: 42.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        artist_features_csv:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+        metrics:
+          artifactType:
+            schemaTitle: system.Metrics
+            schemaVersion: 0.0.1
+  comp-download-spotify-data:
+    executorLabel: exec-download-spotify-data
+    inputDefinitions:
+      parameters:
+        data_url:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        tracks_csv:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-generate-ad-creatives:
+    executorLabel: exec-generate-ad-creatives
+    inputDefinitions:
+      artifacts:
+        artist_features_csv:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        creatives_per_artist:
+          defaultValue: 8.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        random_seed:
+          defaultValue: 42.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        top_n_per_genre:
+          defaultValue: 80.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        creatives_csv:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+        metrics:
+          artifactType:
+            schemaTitle: system.Metrics
+            schemaVersion: 0.0.1
+  comp-generate-campaign-recommendations:
+    executorLabel: exec-generate-campaign-recommendations
+    inputDefinitions:
+      artifacts:
+        artist_features_csv:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+        artist_model:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+        creative_model:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+        creatives_csv:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        artist_categorical_cols:
+          parameterType: STRING
+        artist_feature_cols:
+          parameterType: STRING
+        creative_categorical_cols:
+          parameterType: STRING
+        creative_feature_cols:
+          parameterType: STRING
+        top_creatives_per_artist:
+          defaultValue: 1.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        top_k_artists:
+          defaultValue: 25.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        metrics:
+          artifactType:
+            schemaTitle: system.Metrics
+            schemaVersion: 0.0.1
+        recommendations_csv:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-train-ranker:
+    executorLabel: exec-train-ranker
+    inputDefinitions:
+      artifacts:
+        features_csv:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        categorical_cols:
+          parameterType: STRING
+        feature_cols:
+          parameterType: STRING
+        label_col:
+          parameterType: STRING
+        model_name:
+          parameterType: STRING
+        qid_col:
+          parameterType: STRING
+        random_seed:
+          defaultValue: 42.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        test_size:
+          defaultValue: 0.2
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+    outputDefinitions:
+      artifacts:
+        metrics:
+          artifactType:
+            schemaTitle: system.Metrics
+            schemaVersion: 0.0.1
+        model_out:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+  comp-train-ranker-2:
+    executorLabel: exec-train-ranker-2
+    inputDefinitions:
+      artifacts:
+        features_csv:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        categorical_cols:
+          parameterType: STRING
+        feature_cols:
+          parameterType: STRING
+        label_col:
+          parameterType: STRING
+        model_name:
+          parameterType: STRING
+        qid_col:
+          parameterType: STRING
+        random_seed:
+          defaultValue: 42.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        test_size:
+          defaultValue: 0.2
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+    outputDefinitions:
+      artifacts:
+        metrics:
+          artifactType:
+            schemaTitle: system.Metrics
+            schemaVersion: 0.0.1
+        model_out:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-build-artist-features:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - build_artist_features
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'pandas==2.2.2'\
+          \ 'numpy==1.26.4'  &&  python3 -m pip install --quiet --no-warn-script-location\
+          \ 'kfp==2.17.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"\
+          3.9\"' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef build_artist_features(\n    tracks_csv: Input[Dataset],\n   \
+          \ artist_features_csv: Output[Dataset],\n    metrics: Output[Metrics],\n\
+          \    min_tracks: int = 2,\n    random_seed: int = 42,\n):\n    \"\"\"Aggregate\
+          \ raw tracks to one row per artist and build the ranking label.\n\n    All\
+          \ feature columns are real Spotify signals. The *label* (campaign_lift_score\
+          \ /\n    relevance_grade) is a SIMULATED proxy for \"user-acquisition lift\
+          \ if this artist is\n    promoted\" -- no public dataset of real UA campaign\
+          \ outcomes exists. It is built as a\n    documented, weighted combination\
+          \ of real signals (current popularity, playlist reach,\n    release recency,\
+          \ sonic \"ad appeal\") plus Gaussian noise representing the real-world\n\
+          \    unpredictability of campaign performance. This keeps the ranking task\
+          \ genuinely\n    learnable rather than a tautology, while being transparent\
+          \ that it is not ground truth.\n    \"\"\"\n    import pandas as pd\n  \
+          \  import numpy as np\n\n    df = pd.read_csv(tracks_csv.path)\n    df =\
+          \ df.dropna(subset=[\"track_artist\", \"track_album_release_date\"]).reset_index(drop=True)\n\
+          \    df[\"track_album_release_date\"] = pd.to_datetime(df[\"track_album_release_date\"\
+          ], errors=\"coerce\")\n    df = df.dropna(subset=[\"track_album_release_date\"\
+          ])\n\n    audio_cols = [\n        \"danceability\", \"energy\", \"loudness\"\
+          , \"speechiness\",\n        \"acousticness\", \"instrumentalness\", \"liveness\"\
+          , \"valence\", \"tempo\",\n    ]\n\n    def mode_or_first(s):\n        m\
+          \ = s.mode()\n        return m.iloc[0] if len(m) else s.iloc[0]\n\n    agg\
+          \ = df.groupby(\"track_artist\").agg(\n        n_tracks=(\"track_id\", \"\
+          count\"),\n        n_albums=(\"track_album_id\", \"nunique\"),\n       \
+          \ playlist_reach=(\"playlist_id\", \"nunique\"),\n        n_genres=(\"playlist_genre\"\
+          , \"nunique\"),\n        n_subgenres=(\"playlist_subgenre\", \"nunique\"\
+          ),\n        avg_popularity=(\"track_popularity\", \"mean\"),\n        max_popularity=(\"\
+          track_popularity\", \"max\"),\n        std_popularity=(\"track_popularity\"\
+          , \"std\"),\n        latest_release=(\"track_album_release_date\", \"max\"\
+          ),\n        dominant_genre=(\"playlist_genre\", mode_or_first),\n      \
+          \  dominant_subgenre=(\"playlist_subgenre\", mode_or_first),\n        **{f\"\
+          avg_{c}\": (c, \"mean\") for c in audio_cols},\n    ).reset_index()\n\n\
+          \    agg[\"std_popularity\"] = agg[\"std_popularity\"].fillna(0.0)\n   \
+          \ agg = agg[agg[\"n_tracks\"] >= min_tracks].reset_index(drop=True)\n\n\
+          \    max_date = agg[\"latest_release\"].max()\n    agg[\"days_since_release\"\
+          ] = (max_date - agg[\"latest_release\"]).dt.days\n    agg[\"recency_score\"\
+          ] = 1.0 / (1.0 + agg[\"days_since_release\"] / 365.0)\n\n    def zscore(s):\n\
+          \        std = s.std()\n        return (s - s.mean()) / std if std > 0 else\
+          \ s * 0.0\n\n    rng = np.random.default_rng(random_seed)\n\n    known_signal\
+          \ = (\n        0.5 * zscore(agg[\"avg_popularity\"])\n        + 0.3 * zscore(agg[\"\
+          playlist_reach\"])\n        + 0.2 * zscore(agg[\"recency_score\"])\n   \
+          \ )\n    ad_appeal = (\n        0.15 * zscore(agg[\"avg_danceability\"])\n\
+          \        + 0.15 * zscore(agg[\"avg_energy\"])\n        - 0.10 * zscore(agg[\"\
+          avg_instrumentalness\"])\n    )\n    # Noise is deliberately larger than\
+          \ the deterministic signal: real campaign outcomes\n    # are not fully\
+          \ predictable from current metrics alone, and this keeps the ranking\n \
+          \   # task genuinely learnable rather than a tautological recovery of the\
+          \ label formula.\n    noise = rng.normal(0, 0.8, size=len(agg))\n\n    #\
+          \ SIMULATED LABEL -- see docstring.\n    agg[\"campaign_lift_score\"] =\
+          \ known_signal + ad_appeal + noise\n\n    def bucket_grade(group, n_bins=10):\n\
+          \        try:\n            return pd.qcut(group, n_bins, labels=False, duplicates=\"\
+          drop\")\n        except ValueError:\n            return pd.Series(0, index=group.index)\n\
+          \n    agg[\"relevance_grade\"] = (\n        agg.groupby(\"dominant_genre\"\
+          )[\"campaign_lift_score\"]\n        .transform(bucket_grade)\n        .fillna(0)\n\
+          \        .astype(int)\n    )\n\n    agg[\"artist_id\"] = agg[\"track_artist\"\
+          ]\n    agg.to_csv(artist_features_csv.path, index=False)\n\n    metrics.log_metric(\"\
+          n_artists\", float(len(agg)))\n    metrics.log_metric(\"n_genres\", float(agg[\"\
+          dominant_genre\"].nunique()))\n    metrics.log_metric(\"avg_tracks_per_artist\"\
+          , float(agg[\"n_tracks\"].mean()))\n    metrics.log_metric(\"dropped_below_min_tracks\"\
+          , float(df[\"track_artist\"].nunique() - len(agg)))\n\n"
+        image: python:3.11
+    exec-download-spotify-data:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - download_spotify_data
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'pandas==2.2.2'\
+          \ 'numpy==1.26.4'  &&  python3 -m pip install --quiet --no-warn-script-location\
+          \ 'kfp==2.17.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"\
+          3.9\"' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef download_spotify_data(data_url: str, tracks_csv: Output[Dataset]):\n\
+          \    \"\"\"Download the open TidyTuesday mirror of Spotify's track/audio-feature\
+          \ data.\"\"\"\n    import urllib.request\n\n    urllib.request.urlretrieve(data_url,\
+          \ tracks_csv.path)\n\n"
+        image: python:3.11
+    exec-generate-ad-creatives:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - generate_ad_creatives
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'pandas==2.2.2'\
+          \ 'numpy==1.26.4'  &&  python3 -m pip install --quiet --no-warn-script-location\
+          \ 'kfp==2.17.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"\
+          3.9\"' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef generate_ad_creatives(\n    artist_features_csv: Input[Dataset],\n\
+          \    creatives_csv: Output[Dataset],\n    metrics: Output[Metrics],\n  \
+          \  top_n_per_genre: int = 80,\n    creatives_per_artist: int = 8,\n    random_seed:\
+          \ int = 42,\n):\n    \"\"\"Synthesize ad-creative variants for a subset\
+          \ of artists.\n\n    Spotify does not publish ad-creative or engagement\
+          \ data, so this entire stage is\n    SIMULATED: creative attributes are\
+          \ sampled from a defined vocabulary, and the\n    engagement label is generated\
+          \ from a hand-authored, documented affinity model (which\n    creative attributes\
+          \ plausibly pair well with which genre / format) plus noise. This is\n \
+          \   disclosed as simulated throughout the README and is not real Spotify\
+          \ or ad-platform data.\n    \"\"\"\n    import pandas as pd\n    import\
+          \ numpy as np\n\n    df = pd.read_csv(artist_features_csv.path)\n\n    #\
+          \ Keep the creative-ranking stage tractable: focus on the top artists per\
+          \ genre by\n    # current popularity, which is who a UA team would realistically\
+          \ shortlist first.\n    top = (\n        df.sort_values(\"avg_popularity\"\
+          , ascending=False)\n        .groupby(\"dominant_genre\")\n        .head(top_n_per_genre)\n\
+          \        .reset_index(drop=True)\n    )\n\n    formats = [\"video\", \"\
+          carousel\", \"static_image\", \"story_ad\"]\n    hooks = [\"genre_tag\"\
+          , \"mood_based\", \"lyric_snippet\", \"artist_story\", \"trending_challenge\"\
+          ]\n    ctas = [\"try_free\", \"listen_now\", \"add_to_playlist\", \"follow_artist\"\
+          ]\n    visual_styles = [\"dark_moody\", \"vibrant_colorful\", \"minimal_clean\"\
+          , \"retro_grain\"]\n    placements = [\"instagram_feed\", \"instagram_story\"\
+          , \"tiktok\", \"youtube_preroll\", \"display_banner\"]\n\n    # Hand-authored\
+          \ domain affinities (SIMULATED assumptions, documented in README).\n   \
+          \ genre_format_affinity = {\n        \"edm\": {\"video\": 0.6, \"story_ad\"\
+          : 0.4}, \"rap\": {\"video\": 0.5, \"story_ad\": 0.5},\n        \"pop\":\
+          \ {\"video\": 0.5, \"carousel\": 0.3}, \"latin\": {\"video\": 0.4, \"story_ad\"\
+          : 0.4},\n        \"r&b\": {\"carousel\": 0.4, \"static_image\": 0.3}, \"\
+          rock\": {\"carousel\": 0.4, \"static_image\": 0.4},\n    }\n    format_placement_affinity\
+          \ = {\n        \"video\": {\"tiktok\": 0.5, \"youtube_preroll\": 0.4, \"\
+          instagram_story\": 0.3},\n        \"story_ad\": {\"instagram_story\": 0.5,\
+          \ \"tiktok\": 0.3},\n        \"carousel\": {\"instagram_feed\": 0.4, \"\
+          display_banner\": 0.2},\n        \"static_image\": {\"display_banner\":\
+          \ 0.4, \"instagram_feed\": 0.3},\n    }\n    genre_hook_affinity = {\n \
+          \       \"edm\": {\"trending_challenge\": 0.4, \"mood_based\": 0.3},\n \
+          \       \"rap\": {\"lyric_snippet\": 0.5, \"trending_challenge\": 0.3},\n\
+          \        \"pop\": {\"trending_challenge\": 0.4, \"artist_story\": 0.2},\n\
+          \        \"latin\": {\"mood_based\": 0.4, \"trending_challenge\": 0.3},\n\
+          \        \"r&b\": {\"mood_based\": 0.4, \"artist_story\": 0.3},\n      \
+          \  \"rock\": {\"artist_story\": 0.4, \"genre_tag\": 0.3},\n    }\n\n   \
+          \ rng = np.random.default_rng(random_seed)\n    combo_pool = [\n       \
+          \ (f, h, c, v, p)\n        for f in formats for h in hooks for c in ctas\
+          \ for v in visual_styles for p in placements\n    ]\n\n    rows = []\n \
+          \   for _, artist in top.iterrows():\n        n = min(creatives_per_artist,\
+          \ len(combo_pool))\n        chosen_idx = rng.choice(len(combo_pool), size=n,\
+          \ replace=False)\n        for idx in chosen_idx:\n            fmt, hook,\
+          \ cta, style, placement = combo_pool[idx]\n            base = (\n      \
+          \          0.5 * artist[\"avg_popularity\"] / 100.0\n                + 0.3\
+          \ * min(artist[\"playlist_reach\"] / 50.0, 1.0)\n                + 0.2 *\
+          \ artist[\"avg_danceability\"]\n            )\n            appeal = 0.1\
+          \ * artist[\"avg_energy\"] + 0.1 * artist[\"avg_valence\"]\n           \
+          \ fmt_bonus = genre_format_affinity.get(artist[\"dominant_genre\"], {}).get(fmt,\
+          \ 0.0)\n            hook_bonus = genre_hook_affinity.get(artist[\"dominant_genre\"\
+          ], {}).get(hook, 0.0)\n            placement_bonus = format_placement_affinity.get(fmt,\
+          \ {}).get(placement, 0.0)\n            noise = rng.normal(0, 0.45)\n\n \
+          \           # SIMULATED LABEL -- see docstring.\n            engagement_score\
+          \ = base + appeal + fmt_bonus + hook_bonus + placement_bonus + noise\n\n\
+          \            rows.append({\n                \"artist_id\": artist[\"artist_id\"\
+          ],\n                \"dominant_genre\": artist[\"dominant_genre\"],\n  \
+          \              \"avg_popularity\": artist[\"avg_popularity\"],\n       \
+          \         \"playlist_reach\": artist[\"playlist_reach\"],\n            \
+          \    \"avg_danceability\": artist[\"avg_danceability\"],\n             \
+          \   \"avg_energy\": artist[\"avg_energy\"],\n                \"avg_valence\"\
+          : artist[\"avg_valence\"],\n                \"creative_format\": fmt,\n\
+          \                \"hook_type\": hook,\n                \"cta_type\": cta,\n\
+          \                \"visual_style\": style,\n                \"placement\"\
+          : placement,\n                \"engagement_score\": engagement_score,\n\
+          \            })\n\n    creatives = pd.DataFrame(rows)\n\n    def bucket_grade(group,\
+          \ n_bins=5):\n        try:\n            return pd.qcut(group, n_bins, labels=False,\
+          \ duplicates=\"drop\")\n        except ValueError:\n            return pd.Series(0,\
+          \ index=group.index)\n\n    creatives[\"relevance_grade\"] = (\n       \
+          \ creatives.groupby(\"artist_id\")[\"engagement_score\"]\n        .transform(bucket_grade)\n\
+          \        .fillna(0)\n        .astype(int)\n    )\n\n    creatives.to_csv(creatives_csv.path,\
+          \ index=False)\n\n    metrics.log_metric(\"n_creatives\", float(len(creatives)))\n\
+          \    metrics.log_metric(\"n_artists_with_creatives\", float(creatives[\"\
+          artist_id\"].nunique()))\n\n"
+        image: python:3.11
+    exec-generate-campaign-recommendations:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - generate_campaign_recommendations
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'pandas==2.2.2'\
+          \ 'numpy==1.26.4' 'scikit-learn==1.5.0' 'xgboost==2.1.1'  &&  python3 -m\
+          \ pip install --quiet --no-warn-script-location 'kfp==2.17.0' '--no-deps'\
+          \ 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\
+          \n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef generate_campaign_recommendations(\n    artist_features_csv:\
+          \ Input[Dataset],\n    artist_model: Input[Model],\n    creatives_csv: Input[Dataset],\n\
+          \    creative_model: Input[Model],\n    recommendations_csv: Output[Dataset],\n\
+          \    metrics: Output[Metrics],\n    artist_feature_cols: str,\n    artist_categorical_cols:\
+          \ str,\n    creative_feature_cols: str,\n    creative_categorical_cols:\
+          \ str,\n    top_k_artists: int = 25,\n    top_creatives_per_artist: int\
+          \ = 1,\n):\n    import json\n    import numpy as np\n    import pandas as\
+          \ pd\n    import xgboost as xgb\n\n    def score(df, feats, cats, model_path):\n\
+          \        X = pd.get_dummies(df[feats], columns=cats, drop_first=False)\n\
+          \        with open(model_path + \".columns.json\") as f:\n            meta\
+          \ = json.load(f)\n        X = X.reindex(columns=meta[\"columns\"], fill_value=0)\n\
+          \        booster = xgb.Booster()\n        booster.load_model(model_path\
+          \ + \".json\")\n        return booster.predict(xgb.DMatrix(X))\n\n    artists\
+          \ = pd.read_csv(artist_features_csv.path).reset_index(drop=True)\n    creatives\
+          \ = pd.read_csv(creatives_csv.path).reset_index(drop=True)\n\n    artist_feats\
+          \ = [c for c in artist_feature_cols.split(\",\") if c]\n    artist_cats\
+          \ = [c for c in artist_categorical_cols.split(\",\") if c]\n    creative_feats\
+          \ = [c for c in creative_feature_cols.split(\",\") if c]\n    creative_cats\
+          \ = [c for c in creative_categorical_cols.split(\",\") if c]\n\n    artists[\"\
+          artist_rank_score\"] = score(artists, artist_feats, artist_cats, artist_model.path)\n\
+          \    creatives[\"creative_rank_score\"] = score(creatives, creative_feats,\
+          \ creative_cats, creative_model.path)\n\n    # Only artists that also have\
+          \ generated creative variants can receive a full\n    # artist+creative\
+          \ recommendation.\n    eligible_artists = set(creatives[\"artist_id\"].unique())\n\
+          \    ranked_artists = (\n        artists[artists[\"artist_id\"].isin(eligible_artists)]\n\
+          \        .sort_values(\"artist_rank_score\", ascending=False)\n        .head(top_k_artists)\n\
+          \    )\n\n    best_creatives = (\n        creatives.sort_values(\"creative_rank_score\"\
+          , ascending=False)\n        .groupby(\"artist_id\")\n        .head(top_creatives_per_artist)\n\
+          \    )\n\n    merged = ranked_artists.merge(best_creatives, on=\"artist_id\"\
+          , suffixes=(\"\", \"_creative\"))\n\n    def normalize(s):\n        rng\
+          \ = s.max() - s.min()\n        return (s - s.min()) / rng if rng > 0 else\
+          \ s * 0.0\n\n    merged[\"combined_priority_score\"] = (\n        0.6 *\
+          \ normalize(merged[\"artist_rank_score\"]) + 0.4 * normalize(merged[\"creative_rank_score\"\
+          ])\n    )\n    merged = merged.sort_values(\"combined_priority_score\",\
+          \ ascending=False).reset_index(drop=True)\n    merged.insert(0, \"campaign_rank\"\
+          , merged.index + 1)\n\n    out_cols = [\n        \"campaign_rank\", \"artist_id\"\
+          , \"dominant_genre\", \"avg_popularity\", \"playlist_reach\",\n        \"\
+          artist_rank_score\", \"creative_format\", \"hook_type\", \"cta_type\", \"\
+          visual_style\",\n        \"placement\", \"creative_rank_score\", \"combined_priority_score\"\
+          ,\n    ]\n    merged[out_cols].to_csv(recommendations_csv.path, index=False)\n\
+          \n    metrics.log_metric(\"n_recommendations\", float(len(merged)))\n  \
+          \  metrics.log_metric(\"avg_combined_priority_score\", float(merged[\"combined_priority_score\"\
+          ].mean()))\n\n"
+        image: python:3.11
+    exec-train-ranker:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - train_ranker
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'pandas==2.2.2'\
+          \ 'numpy==1.26.4' 'scikit-learn==1.5.0' 'xgboost==2.1.1'  &&  python3 -m\
+          \ pip install --quiet --no-warn-script-location 'kfp==2.17.0' '--no-deps'\
+          \ 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\
+          \n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef train_ranker(\n    features_csv: Input[Dataset],\n    model_out:\
+          \ Output[Model],\n    metrics: Output[Metrics],\n    feature_cols: str,\n\
+          \    categorical_cols: str,\n    label_col: str,\n    qid_col: str,\n  \
+          \  model_name: str,\n    test_size: float = 0.2,\n    random_seed: int =\
+          \ 42,\n):\n    \"\"\"Train an XGBoost rank:ndcg model, grouped by qid_col,\
+          \ with a held-out group split.\"\"\"\n    import json\n    import numpy\
+          \ as np\n    import pandas as pd\n    import xgboost as xgb\n    from sklearn.model_selection\
+          \ import GroupShuffleSplit\n\n    df = pd.read_csv(features_csv.path).reset_index(drop=True)\n\
+          \    feats = [c for c in feature_cols.split(\",\") if c]\n    cats = [c\
+          \ for c in categorical_cols.split(\",\") if c]\n\n    X = pd.get_dummies(df[feats],\
+          \ columns=cats, drop_first=False)\n    y = df[label_col].astype(int).to_numpy()\n\
+          \    # XGBoost's qid must be numeric (it's packed as uint32 internally),\
+          \ so encode the\n    # raw group keys (artist names / genre strings) to\
+          \ integer codes.\n    groups = pd.factorize(df[qid_col].astype(str))[0]\n\
+          \n    gss = GroupShuffleSplit(n_splits=1, test_size=test_size, random_state=random_seed)\n\
+          \    train_idx, test_idx = next(gss.split(X, y, groups=groups))\n\n    def\
+          \ sort_by_qid(idx):\n        order = np.argsort(groups[idx], kind=\"stable\"\
+          )\n        return idx[order]\n\n    train_idx = sort_by_qid(train_idx)\n\
+          \    test_idx = sort_by_qid(test_idx)\n\n    X_train, X_test = X.loc[train_idx],\
+          \ X.loc[test_idx]\n    y_train, y_test = y[train_idx], y[test_idx]\n   \
+          \ qid_train, qid_test = groups[train_idx], groups[test_idx]\n\n    model\
+          \ = xgb.XGBRanker(\n        objective=\"rank:ndcg\",\n        eval_metric=[\"\
+          ndcg@5\"],\n        n_estimators=80,\n        learning_rate=0.05,\n    \
+          \    max_depth=3,\n        subsample=0.7,\n        colsample_bytree=0.7,\n\
+          \        reg_lambda=5.0,\n        random_state=random_seed,\n    )\n   \
+          \ model.fit(\n        X_train, y_train, qid=qid_train,\n        eval_set=[(X_train,\
+          \ y_train), (X_test, y_test)],\n        eval_qid=[qid_train, qid_test],\n\
+          \        verbose=False,\n    )\n\n    results = model.evals_result()\n \
+          \   train_ndcg = results[\"validation_0\"][\"ndcg@5\"][-1]\n    test_ndcg\
+          \ = results[\"validation_1\"][\"ndcg@5\"][-1]\n\n    model.get_booster().save_model(model_out.path\
+          \ + \".json\")\n    with open(model_out.path + \".columns.json\", \"w\"\
+          ) as f:\n        json.dump({\"columns\": list(X.columns), \"feature_cols\"\
+          : feats, \"categorical_cols\": cats}, f)\n\n    metrics.log_metric(\"train_ndcg_at_5\"\
+          , float(train_ndcg))\n    metrics.log_metric(\"test_ndcg_at_5\", float(test_ndcg))\n\
+          \    metrics.log_metric(\"n_train\", float(len(X_train)))\n    metrics.log_metric(\"\
+          n_test\", float(len(X_test)))\n    metrics.log_metric(\"n_groups\", float(pd.Series(groups).nunique()))\n\
+          \n    importances = model.feature_importances_\n    for i in np.argsort(importances)[::-1][:5]:\n\
+          \        metrics.log_metric(f\"top_feature__{X.columns[i]}\", float(importances[i]))\n\
+          \n"
+        image: python:3.11
+    exec-train-ranker-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - train_ranker
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'pandas==2.2.2'\
+          \ 'numpy==1.26.4' 'scikit-learn==1.5.0' 'xgboost==2.1.1'  &&  python3 -m\
+          \ pip install --quiet --no-warn-script-location 'kfp==2.17.0' '--no-deps'\
+          \ 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"$0\" \"$@\"\
+          \n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef train_ranker(\n    features_csv: Input[Dataset],\n    model_out:\
+          \ Output[Model],\n    metrics: Output[Metrics],\n    feature_cols: str,\n\
+          \    categorical_cols: str,\n    label_col: str,\n    qid_col: str,\n  \
+          \  model_name: str,\n    test_size: float = 0.2,\n    random_seed: int =\
+          \ 42,\n):\n    \"\"\"Train an XGBoost rank:ndcg model, grouped by qid_col,\
+          \ with a held-out group split.\"\"\"\n    import json\n    import numpy\
+          \ as np\n    import pandas as pd\n    import xgboost as xgb\n    from sklearn.model_selection\
+          \ import GroupShuffleSplit\n\n    df = pd.read_csv(features_csv.path).reset_index(drop=True)\n\
+          \    feats = [c for c in feature_cols.split(\",\") if c]\n    cats = [c\
+          \ for c in categorical_cols.split(\",\") if c]\n\n    X = pd.get_dummies(df[feats],\
+          \ columns=cats, drop_first=False)\n    y = df[label_col].astype(int).to_numpy()\n\
+          \    # XGBoost's qid must be numeric (it's packed as uint32 internally),\
+          \ so encode the\n    # raw group keys (artist names / genre strings) to\
+          \ integer codes.\n    groups = pd.factorize(df[qid_col].astype(str))[0]\n\
+          \n    gss = GroupShuffleSplit(n_splits=1, test_size=test_size, random_state=random_seed)\n\
+          \    train_idx, test_idx = next(gss.split(X, y, groups=groups))\n\n    def\
+          \ sort_by_qid(idx):\n        order = np.argsort(groups[idx], kind=\"stable\"\
+          )\n        return idx[order]\n\n    train_idx = sort_by_qid(train_idx)\n\
+          \    test_idx = sort_by_qid(test_idx)\n\n    X_train, X_test = X.loc[train_idx],\
+          \ X.loc[test_idx]\n    y_train, y_test = y[train_idx], y[test_idx]\n   \
+          \ qid_train, qid_test = groups[train_idx], groups[test_idx]\n\n    model\
+          \ = xgb.XGBRanker(\n        objective=\"rank:ndcg\",\n        eval_metric=[\"\
+          ndcg@5\"],\n        n_estimators=80,\n        learning_rate=0.05,\n    \
+          \    max_depth=3,\n        subsample=0.7,\n        colsample_bytree=0.7,\n\
+          \        reg_lambda=5.0,\n        random_state=random_seed,\n    )\n   \
+          \ model.fit(\n        X_train, y_train, qid=qid_train,\n        eval_set=[(X_train,\
+          \ y_train), (X_test, y_test)],\n        eval_qid=[qid_train, qid_test],\n\
+          \        verbose=False,\n    )\n\n    results = model.evals_result()\n \
+          \   train_ndcg = results[\"validation_0\"][\"ndcg@5\"][-1]\n    test_ndcg\
+          \ = results[\"validation_1\"][\"ndcg@5\"][-1]\n\n    model.get_booster().save_model(model_out.path\
+          \ + \".json\")\n    with open(model_out.path + \".columns.json\", \"w\"\
+          ) as f:\n        json.dump({\"columns\": list(X.columns), \"feature_cols\"\
+          : feats, \"categorical_cols\": cats}, f)\n\n    metrics.log_metric(\"train_ndcg_at_5\"\
+          , float(train_ndcg))\n    metrics.log_metric(\"test_ndcg_at_5\", float(test_ndcg))\n\
+          \    metrics.log_metric(\"n_train\", float(len(X_train)))\n    metrics.log_metric(\"\
+          n_test\", float(len(X_test)))\n    metrics.log_metric(\"n_groups\", float(pd.Series(groups).nunique()))\n\
+          \n    importances = model.feature_importances_\n    for i in np.argsort(importances)[::-1][:5]:\n\
+          \        metrics.log_metric(f\"top_feature__{X.columns[i]}\", float(importances[i]))\n\
+          \n"
+        image: python:3.11
+pipelineInfo:
+  description: Rank artists and ad creatives for automated user-acquisition campaigns
+    using XGBoost learning-to-rank.
+  name: content-marketing-ranking-pipeline
+root:
+  dag:
+    tasks:
+      build-artist-features:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-build-artist-features
+        dependentTasks:
+        - download-spotify-data
+        inputs:
+          artifacts:
+            tracks_csv:
+              taskOutputArtifact:
+                outputArtifactKey: tracks_csv
+                producerTask: download-spotify-data
+          parameters:
+            min_tracks:
+              componentInputParameter: min_tracks_per_artist
+            random_seed:
+              componentInputParameter: random_seed
+        taskInfo:
+          name: build-artist-features
+      download-spotify-data:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-download-spotify-data
+        inputs:
+          parameters:
+            data_url:
+              componentInputParameter: data_url
+        taskInfo:
+          name: download-spotify-data
+      generate-ad-creatives:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-generate-ad-creatives
+        dependentTasks:
+        - build-artist-features
+        inputs:
+          artifacts:
+            artist_features_csv:
+              taskOutputArtifact:
+                outputArtifactKey: artist_features_csv
+                producerTask: build-artist-features
+          parameters:
+            creatives_per_artist:
+              componentInputParameter: creatives_per_artist
+            random_seed:
+              componentInputParameter: random_seed
+            top_n_per_genre:
+              componentInputParameter: top_n_per_genre
+        taskInfo:
+          name: generate-ad-creatives
+      generate-campaign-recommendations:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-generate-campaign-recommendations
+        dependentTasks:
+        - build-artist-features
+        - generate-ad-creatives
+        - train-ranker
+        - train-ranker-2
+        inputs:
+          artifacts:
+            artist_features_csv:
+              taskOutputArtifact:
+                outputArtifactKey: artist_features_csv
+                producerTask: build-artist-features
+            artist_model:
+              taskOutputArtifact:
+                outputArtifactKey: model_out
+                producerTask: train-ranker
+            creative_model:
+              taskOutputArtifact:
+                outputArtifactKey: model_out
+                producerTask: train-ranker-2
+            creatives_csv:
+              taskOutputArtifact:
+                outputArtifactKey: creatives_csv
+                producerTask: generate-ad-creatives
+          parameters:
+            artist_categorical_cols:
+              runtimeValue:
+                constant: dominant_genre
+            artist_feature_cols:
+              runtimeValue:
+                constant: n_tracks,n_albums,playlist_reach,n_genres,n_subgenres,avg_popularity,max_popularity,std_popularity,recency_score,avg_danceability,avg_energy,avg_loudness,avg_speechiness,avg_acousticness,avg_instrumentalness,avg_liveness,avg_valence,avg_tempo,dominant_genre
+            creative_categorical_cols:
+              runtimeValue:
+                constant: dominant_genre,creative_format,hook_type,cta_type,visual_style,placement
+            creative_feature_cols:
+              runtimeValue:
+                constant: avg_popularity,playlist_reach,avg_danceability,avg_energy,avg_valence,dominant_genre,creative_format,hook_type,cta_type,visual_style,placement
+            top_k_artists:
+              componentInputParameter: top_k_artists
+        taskInfo:
+          name: generate-campaign-recommendations
+      train-ranker:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-train-ranker
+        dependentTasks:
+        - build-artist-features
+        inputs:
+          artifacts:
+            features_csv:
+              taskOutputArtifact:
+                outputArtifactKey: artist_features_csv
+                producerTask: build-artist-features
+          parameters:
+            categorical_cols:
+              runtimeValue:
+                constant: dominant_genre
+            feature_cols:
+              runtimeValue:
+                constant: n_tracks,n_albums,playlist_reach,n_genres,n_subgenres,avg_popularity,max_popularity,std_popularity,recency_score,avg_danceability,avg_energy,avg_loudness,avg_speechiness,avg_acousticness,avg_instrumentalness,avg_liveness,avg_valence,avg_tempo,dominant_genre
+            label_col:
+              runtimeValue:
+                constant: relevance_grade
+            model_name:
+              runtimeValue:
+                constant: artist_ranker
+            qid_col:
+              runtimeValue:
+                constant: dominant_genre
+            random_seed:
+              componentInputParameter: random_seed
+        taskInfo:
+          name: train-artist-ranker
+      train-ranker-2:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-train-ranker-2
+        dependentTasks:
+        - generate-ad-creatives
+        inputs:
+          artifacts:
+            features_csv:
+              taskOutputArtifact:
+                outputArtifactKey: creatives_csv
+                producerTask: generate-ad-creatives
+          parameters:
+            categorical_cols:
+              runtimeValue:
+                constant: dominant_genre,creative_format,hook_type,cta_type,visual_style,placement
+            feature_cols:
+              runtimeValue:
+                constant: avg_popularity,playlist_reach,avg_danceability,avg_energy,avg_valence,dominant_genre,creative_format,hook_type,cta_type,visual_style,placement
+            label_col:
+              runtimeValue:
+                constant: relevance_grade
+            model_name:
+              runtimeValue:
+                constant: creative_ranker
+            qid_col:
+              runtimeValue:
+                constant: artist_id
+            random_seed:
+              componentInputParameter: random_seed
+        taskInfo:
+          name: train-creative-ranker
+  inputDefinitions:
+    parameters:
+      creatives_per_artist:
+        defaultValue: 8.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      data_url:
+        defaultValue: https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-01-21/spotify_songs.csv
+        isOptional: true
+        parameterType: STRING
+      min_tracks_per_artist:
+        defaultValue: 2.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      random_seed:
+        defaultValue: 42.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      top_k_artists:
+        defaultValue: 25.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      top_n_per_genre:
+        defaultValue: 80.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.17.0

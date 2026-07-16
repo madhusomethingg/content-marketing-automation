@@ -1,0 +1,40 @@
+{
+  "artist_ranker": {
+    "train_ndcg_at_5": 0.9787610047578166,
+    "test_ndcg_at_5": 0.7380596893700605,
+    "n_train": 2619.0,
+    "n_test": 1693.0,
+    "n_groups": 6.0,
+    "top_feature__playlist_reach": 0.2874051332473755,
+    "top_feature__n_tracks": 0.17027686536312103,
+    "top_feature__max_popularity": 0.15895280241966248,
+    "top_feature__n_albums": 0.11928117275238037,
+    "top_feature__n_subgenres": 0.05293295159935951
+  },
+  "creative_ranker": {
+    "train_ndcg_at_5": 0.778374329150825,
+    "test_ndcg_at_5": 0.7168929145940761,
+    "n_train": 3072.0,
+    "n_test": 768.0,
+    "n_groups": 480.0,
+    "top_feature__cta_type_try_free": 0.07198875397443771,
+    "top_feature__creative_format_story_ad": 0.05690984055399895,
+    "top_feature__dominant_genre_rap": 0.05106808617711067,
+    "top_feature__creative_format_video": 0.05050047114491463,
+    "top_feature__dominant_genre_rock": 0.04809657111763954
+  },
+  "artist_features": {
+    "n_artists": 4312.0,
+    "n_genres": 6.0,
+    "avg_tracks_per_artist": 5.783395176252319,
+    "dropped_below_min_tracks": 6004.0
+  },
+  "ad_creatives": {
+    "n_creatives": 3840.0,
+    "n_artists_with_creatives": 480.0
+  },
+  "recommendations": {
+    "n_recommendations": 25.0,
+    "avg_combined_priority_score": 0.49153533577919006
+  }
+}
