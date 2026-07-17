@@ -128,8 +128,6 @@ Since every component is self contained, `pipeline_compiled.yaml` should upload 
 
 ## Limitations
 
-I want to be honest about the limits here instead of overselling it.
-
 The acquisition lift and engagement labels are simulated, as I explained above. This is a demonstration of the methodology, not a validated production model. Getting this to production means swapping in real UA outcome data and a real ad platform engagement feed.
 
 There are only 6 genre groups for the artist ranker, which means that model's generalization is being measured on a pretty small number of held out queries. Going to subgenre level grouping, or adding cross genre features, would give a more robust evaluation.
