@@ -89,7 +89,7 @@ To fix it I turned the noise up substantially (0.4 to 0.8 standard deviation, wh
 
 Looking across the full top 25, video is the recommended format for 20 out of 25, and TikTok or Instagram Story shows up as the placement for 17 out of 25. That tracks with the affinity table I wrote favoring short form video for higher energy genres, which was a decent sanity check that the pipeline is doing something coherent and not just spitting out noise.
 
-## How the repo is laid out
+## Repository structure
 
 ```
 content-marketing-automation/
@@ -107,7 +107,7 @@ content-marketing-automation/
 └── README.md
 ```
 
-## Running it yourself
+## Getting started
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
@@ -126,7 +126,7 @@ Everything lands under `local_outputs/<run-id>/<stage>/`, including per stage me
 
 Since every component is self contained, `pipeline_compiled.yaml` should upload directly to any KFP conformant cluster with no code changes. Kubeflow Pipelines UI, Upload pipeline, or `kfp.Client().create_run_from_pipeline_package(...)` if you're doing it programmatically. From there the real next steps would be swapping the synthetic ad creative stage for an actual ad platform reporting feed, adding a recurring schedule for retraining, and pointing `generate_campaign_recommendations`'s output at wherever the UA team's campaign tooling actually reads from.
 
-## What this isn't
+## Limitations
 
 I want to be honest about the limits here instead of overselling it.
 
